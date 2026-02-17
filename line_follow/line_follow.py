@@ -25,12 +25,14 @@ class LineFollowerNode(LifecycleNode):
         return TransitionCallbackReturn.SUCCESS
 
     def on_deactivate(self, state: LifecycleState) -> TransitionCallbackReturn:
-        self.destroy_subscription(self.image_sub)
+        if self.image_sub is not None:
+            self.destroy_subscription(self.image_sub)
 
         return TransitionCallbackReturn.SUCCESS
 
     def on_cleanup(self, state: LifecycleState) -> TransitionCallbackReturn:
-        self.destroy_publisher(self.vel_pub)
+        if self.vel_pub is not None:
+            self.destroy_publisher(self.vel_pub)
 
         return TransitionCallbackReturn.SUCCESS
 
