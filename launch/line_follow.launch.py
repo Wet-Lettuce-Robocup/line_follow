@@ -9,3 +9,15 @@ def generate_launch_description():
     config = os.path.join(
         get_package_share_directory('line_follow'), 'config', 'params.yaml'
     )
+
+    return LaunchDescription(
+        [
+            Node(
+                package='line_follow',
+                executable='core_loop',
+                name='core_loop',
+                output='screen',
+                parameters=[config],
+            ),
+        ]
+    )
