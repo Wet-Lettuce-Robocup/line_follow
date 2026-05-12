@@ -7,8 +7,9 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
+find_package(lifecycle_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 
 add_executable(core_loop src/core_loop.cpp)
@@ -17,6 +18,7 @@ target_include_directories(core_loop PRIVATE
   include)
 
 target_link_libraries(core_loop PRIVATE
+  ${lifecycle_msgs_TARGETS}
   rclcpp::rclcpp
   rclcpp_lifecycle::rclcpp_lifecycle
   ${std_msgs_TARGETS}
