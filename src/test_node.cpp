@@ -1,13 +1,17 @@
-#include <memory>
 #include <rclcpp/rclcpp.hpp>
+
 #include <std_msgs/msg/string.hpp>
+
+#include <memory>
 #include <string>
 
 using namespace std::chrono_literals;
 
-class TestNode : public rclcpp::Node {
+class TestNode : public rclcpp::Node
+{
 public:
-  TestNode() : Node("test_node"), count_(0) {
+  TestNode() : Node("test_node"), count_(0)
+  {
     publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
     auto timer_callback = [this]() -> void {
       auto message = std_msgs::msg::String();
@@ -24,7 +28,8 @@ private:
   size_t count_;
 };
 
-int main(int argc, char *argv[]) {
+int main(int argc, char * argv[])
+{
   rclcpp::init(argc, argv);
 
   rclcpp::spin(std::make_shared<TestNode>());
