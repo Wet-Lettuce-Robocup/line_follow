@@ -6,7 +6,8 @@
 
 #include <memory>
 
-CoreLoop::CoreLoop() : rclcpp_lifecycle::LifecycleNode("core_loop")
+CoreLoop::CoreLoop()
+: rclcpp_lifecycle::LifecycleNode("core_loop")
 {
   RCLCPP_INFO(this->get_logger(), "test");
 }
