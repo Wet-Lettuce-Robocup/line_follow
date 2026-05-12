@@ -1,9 +1,9 @@
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 
-using CallbackReturn =
-    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-class CoreLoop : public rclcpp_lifecycle::LifecycleNode {
+class CoreLoop : public rclcpp_lifecycle::LifecycleNode
+{
 public:
   CoreLoop();
 
