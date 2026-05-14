@@ -4,6 +4,31 @@
 PIDLoop::PIDLoop()
 : rclcpp_lifecycle::LifecycleNode("pid_loop") {}
 
+CallbackReturn PIDLoop::on_configure(const rclcpp_lifecycle::State &)
+{
+  return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PIDLoop::on_activate(const rclcpp_lifecycle::State &)
+{
+  return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PIDLoop::on_deactivate(const rclcpp_lifecycle::State &)
+{
+  return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PIDLoop::on_cleanup(const rclcpp_lifecycle::State &)
+{
+  return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn PIDLoop::on_shutdown(const rclcpp_lifecycle::State &)
+{
+  return CallbackReturn::SUCCESS;
+}
+
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);

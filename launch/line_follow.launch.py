@@ -2,7 +2,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch_ros.actions import Node
+from launch_ros.actions import LifecycleNode
 
 
 def generate_launch_description():
@@ -12,10 +12,27 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            Node(
+            LifecycleNode(
                 package='line_follow',
                 executable='core_loop',
                 name='core_loop',
+                namespace='',
+                output='screen',
+                parameters=[config],
+            ),
+            LifecycleNode(
+                package='line_follow',
+                executable='navigation',
+                name='navigation',
+                namespace='',
+                output='screen',
+                parameters=[config],
+            ),
+            LifecycleNode(
+                package='line_follow',
+                executable='pid_loop',
+                name='pid_loop',
+                namespace='',
                 output='screen',
                 parameters=[config],
             ),

@@ -6,6 +6,7 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <std_msgs/msg/float32.hpp>
 #include <memory>
+#include <opencv2/opencv.hpp>
 
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
@@ -20,8 +21,9 @@ public:
   CallbackReturn on_shutdown(const rclcpp_lifecycle::State &) override;
 
 private:
-  std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::Image>> imageSub;
-  std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> errorPub;
+  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr imageSub;
+  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Float32>> errorPub;
 
-  void imageCallback(sensor_msgs::msg::Image msg);
+  void imageCallback(sensor_msgs::msg::Image::SharedPtr msg);
+  cv::Mat processImage(cv::Mat image);
 };

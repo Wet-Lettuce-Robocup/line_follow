@@ -12,6 +12,8 @@ find_package(lifecycle_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(OpenCV REQUIRED)
 
 add_executable(core_loop src/core_loop.cpp)
 
@@ -28,13 +30,17 @@ target_link_libraries(core_loop PRIVATE
 add_executable(navigation src/navigation.cpp)
 
 target_include_directories(navigation PRIVATE
-  include)
+  include
+  ${OpenCV_INCLUDE_DIRS}
+)
 
 target_link_libraries(navigation PRIVATE
   ${sensor_msgs_TARGETS}
   rclcpp::rclcpp
   rclcpp_lifecycle::rclcpp_lifecycle
   ${std_msgs_TARGETS}
+  cv_bridge::cv_bridge
+  ${OpenCV_LIBRARIES}
 )
 
 add_executable(pid_loop src/pid_loop.cpp)
