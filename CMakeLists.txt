@@ -25,6 +25,30 @@ target_link_libraries(core_loop PRIVATE
   ${std_msgs_TARGETS}
 )
 
+add_executable(navigation src/navigation.cpp)
+
+target_include_directories(navigation PRIVATE
+  include)
+
+target_link_libraries(navigation PRIVATE
+  ${sensor_msgs_TARGETS}
+  rclcpp::rclcpp
+  rclcpp_lifecycle::rclcpp_lifecycle
+  ${std_msgs_TARGETS}
+)
+
+add_executable(pid_loop src/pid_loop.cpp)
+
+target_include_directories(pid_loop PRIVATE
+  include)
+
+target_link_libraries(pid_loop PRIVATE
+  ${lifecycle_msgs_TARGETS}
+  rclcpp::rclcpp
+  rclcpp_lifecycle::rclcpp_lifecycle
+  ${std_msgs_TARGETS}
+)
+
 install(TARGETS
   core_loop
   DESTINATION lib/${PROJECT_NAME}
