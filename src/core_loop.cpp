@@ -15,7 +15,7 @@ CoreLoop::CoreLoop()
   RCLCPP_INFO(this->get_logger(), "test");
 
   this->navigation_client = nullptr;
-  this->pid_manager_client = nullptr;
+  this->pid_loop_client = nullptr;
 }
 
 void CoreLoop::transitionClient(
@@ -39,24 +39,24 @@ CallbackReturn CoreLoop::on_configure(const rclcpp_lifecycle::State &)
   RCLCPP_INFO(this->get_logger(), "configuring");
 
   this->navigation_client =
-    this->create_client<lifecycle_msgs::srv::ChangeState>("/navigation_node/change_state");
+    this->create_client<lifecycle_msgs::srv::ChangeState>("/navigation/change_state");
 
   if (!this->navigation_client->wait_for_service(std::chrono::seconds(5))) {
     RCLCPP_ERROR(this->get_logger(), "Navigation service not available");
     return CallbackReturn::FAILURE;
   }
 
-  this->pid_manager_client =
-    this->create_client<lifecycle_msgs::srv::ChangeState>("/pid_manager/change_state");
+  this->pid_loop_client =
+    this->create_client<lifecycle_msgs::srv::ChangeState>("/pid_loop/change_state");
 
-  if (!this->pid_manager_client->wait_for_service(std::chrono::seconds(5))) {
+  if (!this->pid_loop_client->wait_for_service(std::chrono::seconds(5))) {
     RCLCPP_ERROR(this->get_logger(), "PID manager service not available");
     return CallbackReturn::FAILURE;
   }
 
   this->transitionClient(this->navigation_client,
     lifecycle_msgs::msg::Transition::TRANSITION_CONFIGURE);
-  this->transitionClient(this->pid_manager_client,
+  this->transitionClient(this->pid_loop_client,
     lifecycle_msgs::msg::Transition::TRANSITION_CONFIGURE);
 
   return CallbackReturn::SUCCESS;
@@ -66,7 +66,7 @@ CallbackReturn CoreLoop::on_activate(const rclcpp_lifecycle::State &)
 {
   this->transitionClient(this->navigation_client,
     lifecycle_msgs::msg::Transition::TRANSITION_ACTIVATE);
-  this->transitionClient(this->pid_manager_client,
+  this->transitionClient(this->pid_loop_client,
     lifecycle_msgs::msg::Transition::TRANSITION_ACTIVATE);
 
   RCLCPP_INFO(this->get_logger(), "activated");
@@ -78,7 +78,7 @@ CallbackReturn CoreLoop::on_deactivate(const rclcpp_lifecycle::State &)
 {
   this->transitionClient(this->navigation_client,
     lifecycle_msgs::msg::Transition::TRANSITION_DEACTIVATE);
-  this->transitionClient(this->pid_manager_client,
+  this->transitionClient(this->pid_loop_client,
     lifecycle_msgs::msg::Transition::TRANSITION_DEACTIVATE);
 
   RCLCPP_INFO(this->get_logger(), "deactivated");
@@ -90,7 +90,7 @@ CallbackReturn CoreLoop::on_cleanup(const rclcpp_lifecycle::State &)
 {
   this->transitionClient(this->navigation_client,
     lifecycle_msgs::msg::Transition::TRANSITION_CLEANUP);
-  this->transitionClient(this->pid_manager_client,
+  this->transitionClient(this->pid_loop_client,
     lifecycle_msgs::msg::Transition::TRANSITION_CLEANUP);
 
   RCLCPP_INFO(this->get_logger(), "cleanup");

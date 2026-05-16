@@ -12,6 +12,7 @@ find_package(lifecycle_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 
@@ -50,6 +51,7 @@ target_include_directories(pid_loop PRIVATE
 
 target_link_libraries(pid_loop PRIVATE
   ${lifecycle_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
   rclcpp::rclcpp
   rclcpp_lifecycle::rclcpp_lifecycle
   ${std_msgs_TARGETS}
@@ -57,6 +59,8 @@ target_link_libraries(pid_loop PRIVATE
 
 install(TARGETS
   core_loop
+  navigation
+  pid_loop
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -5,7 +5,6 @@
 #include <opencv2/ximgproc.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
-#include "sensor_msgs/msg/image.hpp"
 #include <lifecycle_msgs/msg/state.hpp>
 #include <functional>
 #include <cv_bridge/cv_bridge.hpp>
@@ -17,7 +16,8 @@ NavigationNode::NavigationNode()
 
 CallbackReturn NavigationNode::on_configure(const rclcpp_lifecycle::State &)
 {
-  this->errorPub = this->create_publisher<std_msgs::msg::Float32>("line_error", 10);
+  RCLCPP_INFO(this->get_logger(), "Configuring...");
+  this->errorPub = this->create_publisher<std_msgs::msg::Float64>("line_error", 10);
   this->imageSub = this->create_subscription<sensor_msgs::msg::Image>("camera_front/image_raw", 10,
     std::bind(&NavigationNode::imageCallback, this, _1));
 

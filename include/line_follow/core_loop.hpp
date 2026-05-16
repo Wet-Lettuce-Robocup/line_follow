@@ -21,5 +21,5 @@ private:
     std::shared_ptr<rclcpp::Client<lifecycle_msgs::srv::ChangeState>> client,
     uint8_t transition);
   std::shared_ptr<rclcpp::Client<lifecycle_msgs::srv::ChangeState>> navigation_client;
-  std::shared_ptr<rclcpp::Client<lifecycle_msgs::srv::ChangeState>> pid_manager_client;
+  std::shared_ptr<rclcpp::Client<lifecycle_msgs::srv::ChangeState>> pid_loop_client;
 };
