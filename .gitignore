@@ -51,3 +51,4 @@ qtcreator-*
 CATKIN_IGNORE
 
 compile_commands.json
+.cache
