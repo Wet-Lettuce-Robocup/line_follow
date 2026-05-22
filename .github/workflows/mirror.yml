@@ -17,4 +17,4 @@ jobs:
       - uses: pixta-dev/repository-mirroring-action@v1
         with:
           target_repo_url: https://github.com/SGCS-SE/2026-at3-software-project-will-da-pro.git
-          ssh_private_key: ${{ secrets.MIRROR_PAT }}
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
