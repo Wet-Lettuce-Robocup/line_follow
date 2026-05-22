@@ -1,6 +1,12 @@
 name: Mirror to Target Repo
 
 on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
   push:
     branches: [ "**" ]
   delete:
