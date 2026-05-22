@@ -1,11 +1,10 @@
-# .github/workflows/mirror.yml
-name: Mirror to another repo
+name: Mirror to Target Repo
 
 on:
-  push:          # Trigger on every push
-    branches: [ '**' ]   # All branches
-  delete:        # Also mirror deletions of branches/tags
-  workflow_dispatch:   # Allow manual trigger
+  push:
+    branches: [ "**" ]
+  delete:
+  workflow_dispatch:
 
 jobs:
   mirror:
@@ -13,11 +12,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # Important: get full history
+          fetch-depth: 0
 
-      - uses: pixta-dev/repository-mirroring-action@v1
-        with:
-          target_repo_url: https://${{ secrets.MIRROR_PAT }}@github.com/SGCS-SE/2026-at3-software-project-will-da-pro.git
-          # Or use SSH (recommended for some cases):
-          # target_repo_url: git@github.com:OWNER/MIRROR-REPO.git
-          # ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Mirror repository
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          git remote add mirror https://${{ secrets.MIRROR_PAT }}@github.com/SGCS-SE/2026-at3-software-project-will-da-pro.git
+          
+          git push --mirror mirror
