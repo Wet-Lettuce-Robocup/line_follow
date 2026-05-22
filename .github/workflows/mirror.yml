@@ -19,6 +19,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Test SSH Connection
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+          ssh -T -i ~/.ssh/id_rsa git@github.com || true
+
       - uses: pixta-dev/repository-mirroring-action@v1
         with:
           target_repo_url: https://github.com/SGCS-SE/2026-at3-software-project-will-da-pro.git
