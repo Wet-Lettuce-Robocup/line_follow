@@ -16,7 +16,7 @@ jobs:
     if: github.repository == 'Wet-Lettuce-Robocup/line_follow'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -32,6 +32,7 @@ jobs:
 
       - name: Push to Mirror Repo
         run: |
+          git fetch --all
           # Replace with your actual target SSH URL
           git remote add mirror git@github.com:SGCS-SE/2026-at3-software-project-will-da-pro.git
           
