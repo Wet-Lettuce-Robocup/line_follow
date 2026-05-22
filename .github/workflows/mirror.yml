@@ -14,11 +14,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Mirror repository
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          git remote add mirror https://${{ secrets.MIRROR_PAT }}@github.com/SGCS-SE/2026-at3-software-project-will-da-pro.git
-          
-          git push --mirror mirror
+      - uses: pixta-dev/repository-mirroring-action@v1
+        with:
+          target_repo_url: https://github.com/SGCS-SE/2026-at3-software-project-will-da-pro.git
+          ssh_private_key: ${{ secrets.MIRROR_PAT }}
