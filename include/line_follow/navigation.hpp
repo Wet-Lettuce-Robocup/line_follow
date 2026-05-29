@@ -5,6 +5,32 @@
 #include <std_msgs/msg/float64.hpp>
 #include <opencv2/opencv.hpp>
 
+struct Node
+{
+  int id;
+  cv::Point pos; // averaged position after merging
+  bool is_endpoint;
+};
+
+struct Edge
+{
+  int src, dst;                // node IDs
+  std::vector<cv::Point> path; // pixel chain along the skeleton
+  double length;               // Euclidean arc length
+
+  bool operator==(const Edge & other) const
+  {
+    return (src == other.src && dst == other.dst) ||
+           (src == other.dst && dst == other.src);
+  }
+};
+
+struct Graph
+{
+  std::vector<Node> nodes;
+  std::vector<Edge> edges;
+};
+
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
 class NavigationNode : public rclcpp_lifecycle::LifecycleNode {
@@ -17,10 +43,34 @@ public:
   CallbackReturn on_cleanup(const rclcpp_lifecycle::State &) override;
   CallbackReturn on_shutdown(const rclcpp_lifecycle::State &) override;
 
+  int pathLimit;
+  int minEdgeSize;
+
 private:
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr imageSub;
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Float64>> errorPub;
 
   void imageCallback(sensor_msgs::msg::Image::SharedPtr msg);
   cv::Mat processImage(cv::Mat image);
+
+  std::vector<Node> findPath(Node startPos);
+
+  void extractNodes();
+  void extractEdges();
+
+  std::vector<cv::Point> getSurroundingPoints(cv::Point centre, int radius);
+  std::vector<Edge> traceConnectedEdges(Node node);
+  Node followToNode(std::vector<cv::Point> & path);
+
+  void removeShortEdges(std::vector<Edge> & edges);
+  Edge mergeEdges(Edge edge1, Edge edge2);
+
+  void findNextNode(std::vector<Node> & path);
+  double calculateAngle(cv::Point point1, cv::Point point2);
+
+  Node * nodeFromID(int id);
+  std::vector<Edge *> getConnectedEdges(int nodeID);
+  std::vector<double> getEdgeDirections(Node origin, std::vector<Edge *> edges);
+
+  Graph graph;
 };
