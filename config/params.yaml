@@ -1,0 +1,4 @@
+/line_follow:
+  navigation:
+    ros__parameters:
+      navigation_type: 'simple'

@@ -31,6 +31,12 @@ struct Graph
   std::vector<Edge> edges;
 };
 
+enum NavigationType
+{
+  SIMPLE,
+  ADVANCED
+};
+
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
 class NavigationNode : public rclcpp_lifecycle::LifecycleNode {
@@ -45,10 +51,14 @@ public:
 
   int pathLimit;
   int minEdgeSize;
+  NavigationType navigationType;
 
 private:
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr imageSub;
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Float64>> errorPub;
+
+  void simpleNavigation(cv::Mat & frame);
+  void advancedNavigation(cv::Mat & frame);
 
   void imageCallback(sensor_msgs::msg::Image::SharedPtr msg);
   cv::Mat processImage(cv::Mat image);

@@ -7,12 +7,32 @@
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include <lifecycle_msgs/msg/state.hpp>
 #include <functional>
+#include <unordered_map>
 #include <cv_bridge/cv_bridge.hpp>
 
 using std::placeholders::_1;
 
 NavigationNode::NavigationNode()
-: rclcpp_lifecycle::LifecycleNode("navigation") {}
+: rclcpp_lifecycle::LifecycleNode("navigation")
+{
+  this->declare_parameter<std::string>("navigation_type", "simple");
+
+  std::string nav_type_str = this->get_parameter("navigation_type").as_string();
+
+  static const std::unordered_map<std::string, NavigationType> nav_type_map = {
+    {"simple", NavigationType::SIMPLE},
+    {"advanced", NavigationType::ADVANCED}
+  };
+
+  auto it = nav_type_map.find(nav_type_str);
+
+  if (it != nav_type_map.end()) {
+    this->navigationType = it->second;
+  } else {
+    RCLCPP_ERROR(this->get_logger(), "Unknown navigation type! Defaulting to simple.");
+    this->navigationType = NavigationType::SIMPLE;
+  }
+}
 
 CallbackReturn NavigationNode::on_configure(const rclcpp_lifecycle::State &)
 {
@@ -66,6 +86,24 @@ void NavigationNode::imageCallback(sensor_msgs::msg::Image::SharedPtr msg)
   }
 
   cv::Mat frame = cv_ptr->image;
+
+  switch (this->navigationType) {
+    case NavigationType::SIMPLE:
+      this->simpleNavigation(frame);
+      break;
+    case NavigationType::ADVANCED:
+      this->advancedNavigation(frame);
+      break;
+  }
+}
+
+void NavigationNode::simpleNavigation(cv::Mat & frame)
+{
+
+}
+
+void NavigationNode::advancedNavigation(cv::Mat & frame)
+{
   cv::Mat processed = this->processImage(frame);
 }
 
