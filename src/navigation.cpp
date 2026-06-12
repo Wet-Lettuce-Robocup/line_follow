@@ -266,7 +266,7 @@ cv::Mat NavigationNode::processImage(cv::Mat & image)
   return skeleton;
 }
 
-cv::Mat getGreen(cv::Mat & image)
+cv::Mat NavigationNode::getGreen(cv::Mat & image)
 {
   cv::Mat hsv;
   cv::cvtColor(image, hsv, cv::COLOR_BGR2HSV);
