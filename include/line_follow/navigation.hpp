@@ -61,7 +61,10 @@ private:
   void advancedNavigation(cv::Mat & frame);
 
   void imageCallback(sensor_msgs::msg::Image::SharedPtr msg);
-  cv::Mat processImage(cv::Mat image);
+  cv::Mat processImage(cv::Mat & image);
+  cv::Mat getGreen(cv::Mat & image);
+
+  void publishError(double error);
 
   std::vector<Node> findPath(Node startPos);
 
