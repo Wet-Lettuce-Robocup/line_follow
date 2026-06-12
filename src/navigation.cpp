@@ -6,10 +6,12 @@
 #include <opencv2/ximgproc.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include "std_msgs/msg/float32.hpp"
 #include <lifecycle_msgs/msg/state.hpp>
 #include <functional>
 #include <unordered_map>
 #include <cv_bridge/cv_bridge.hpp>
+#include <std_msgs/msg/float64.hpp>
 
 using std::placeholders::_1;
 
@@ -96,6 +98,13 @@ void NavigationNode::imageCallback(sensor_msgs::msg::Image::SharedPtr msg)
       this->advancedNavigation(frame);
       break;
   }
+}
+
+void NavigationNode::publishError(double error)
+{
+  std_msgs::msg::Float64 msg = std_msgs::msg::Float64();
+  msg.data = error;
+  this->errorPub->publish(msg);
 }
 
 void NavigationNode::simpleNavigation(cv::Mat & frame)
