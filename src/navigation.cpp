@@ -41,7 +41,7 @@ CallbackReturn NavigationNode::on_configure(const rclcpp_lifecycle::State &)
 {
   RCLCPP_INFO(this->get_logger(), "Configuring...");
   this->errorPub = this->create_publisher<std_msgs::msg::Float64>("line_error", 10);
-  this->imageSub = this->create_subscription<sensor_msgs::msg::Image>("camera_front/image_raw", 10,
+  this->imageSub = this->create_subscription<sensor_msgs::msg::Image>("/front_camera/camera_node/image_raw", 10,
     std::bind(&NavigationNode::imageCallback, this, _1));
 
   return CallbackReturn::SUCCESS;
@@ -102,118 +102,85 @@ void NavigationNode::imageCallback(sensor_msgs::msg::Image::SharedPtr msg)
 
 void NavigationNode::publishError(double error)
 {
+  RCLCPP_INFO(this->get_logger(), "Publishing error: %f", error);
   std_msgs::msg::Float64 msg = std_msgs::msg::Float64();
   msg.data = error;
   this->errorPub->publish(msg);
 }
 
+double NavigationNode::simpleError(const cv::Mat & frame) {
+  int newWidth = static_cast<int>(frame.cols * 0.4);
+    int newHeight = static_cast<int>(frame.rows * 0.4);
+
+    // 2. Calculate coordinates to center the crop box
+    int x = (frame.cols - newWidth) / 2;
+    int y = (frame.rows - newHeight) / 2;
+
+    // 3. Define the Region of Interest (ROI) and crop
+    cv::Rect roi(x, y, newWidth, newHeight);
+    cv::Mat croppedImg = frame(roi);
+    cv::Mat gray, thresh;
+
+    // 1. Convert to grayscale if it's a color image
+    if (croppedImg.channels() == 3) {
+        cv::cvtColor(croppedImg, gray, cv::COLOR_BGR2GRAY);
+    } else {
+        gray = croppedImg.clone();
+    }
+
+    // 2. Threshold the image to isolate the line (adjust threshold value as needed)
+    // Using THRESH_BINARY_INV assuming a dark line on a light background. 
+    // Use cv::THRESH_BINARY if it's a bright line on a dark background.
+    cv::threshold(gray, thresh, 100, 255, cv::THRESH_BINARY_INV);
+
+    // 3. Find contours
+    std::vector<std::vector<cv::Point>> contours;
+    cv::findContours(thresh, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+    // If no contours are found, return 0 error
+    if (contours.empty()) {
+        return 0.0;
+    }
+
+    // 4. Find the largest contour (assuming this is our line)
+    size_t largestContourIdx = 0;
+    double maxArea = 0.0;
+    for (size_t i = 0; i < contours.size(); ++i) {
+        double area = cv::contourArea(contours[i]);
+        if (area > maxArea) {
+            maxArea = area;
+            largestContourIdx = i;
+        }
+    }
+
+    // Optional: Filter out tiny noise
+    if (maxArea < 100.0) {
+        return 0.0;
+    }
+
+    // 5. Calculate the Center of Mass (Centroid) using Moments
+    cv::Moments m = cv::moments(contours[largestContourIdx]);
+    
+    // Prevent division by zero
+    if (m.m00 == 0) return 0.0; 
+    
+    // Centroid X coordinate formula: X = M10 / M00
+    double lineCenterX = m.m10 / m.m00;
+
+    // 6. Calculate the error from the screen center
+    double screenCenterX = frame.cols / 2.0;
+    double error = lineCenterX - screenCenterX;
+
+    return error;
+
+}
+
 void NavigationNode::simpleNavigation(cv::Mat & frame)
 {
-  cv::Mat green = this->getGreen(frame);
-
-  cv::Mat line;
-  cv::inRange(frame, cv::Scalar(0, 0, 0), cv::Scalar(60, 60, 60), line);
-
-  float greenWeight = 2.0;
-  cv::Mat weightedCombined;
-  cv::addWeighted(green, greenWeight, line, 1.0, 0, weightedCombined);
-
-  cv::Mat grayscale;
-  cv::cvtColor(weightedCombined, grayscale, cv::COLOR_BGR2GRAY);
-
-  cv::Mat combined;
-  cv::threshold(weightedCombined, combined, 0, 255, cv::THRESH_BINARY);
-
-  std::vector<std::vector<cv::Point>> contours;
-  std::vector<cv::Vec4i> hierarchy;
-
-  cv::findContours(combined, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
-
-  double linePos = 0;
-
-  if (contours.empty()) {
-    this->publishError(0);
-    return;
-  }
-
-  int xPos = 0;
-  int yPos = 0;
-  int xPosGreen = 0;
-  int yPosGreen = 0;
-
-  // Find the largest contour by area
-  auto largestContourLine = std::max_element(contours.begin(), contours.end(),
-      [](const std::vector<cv::Point> & c1, const std::vector<cv::Point> & c2) {
-        return cv::contourArea(c1) < cv::contourArea(c2);
-            });
-
-        // Calculate moments and center of mass for the line
-  cv::Moments m = cv::moments(*largestContourLine);
-  if (m.m00 == 0) {
-    this->publishError(linePos / 200);
-    return;
-  }
-
-  xPos = static_cast<int>(m.m10 / m.m00);
-  yPos = static_cast<int>(m.m01 / m.m00);
-
-        // Process Green ROI
-  std::vector<std::vector<cv::Point>> greenContours;
-  cv::findContours(green, greenContours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-
-  std::vector<cv::Point> largestContourGreen;
-  bool greenFound = false;
-
-  if (!greenContours.empty()) {
-    auto largestGreenIt = std::max_element(greenContours.begin(), greenContours.end(),
-        [](const std::vector<cv::Point> & c1, const std::vector<cv::Point> & c2) {
-          return cv::contourArea(c1) < cv::contourArea(c2);
-                });
-
-    largestContourGreen = *largestGreenIt;
-    greenFound = true;
-
-    cv::Moments mGreen = cv::moments(largestContourGreen);
-    if (mGreen.m00 != 0) {
-      xPosGreen = static_cast<int>(mGreen.m10 / mGreen.m00);
-      yPosGreen = static_cast<int>(mGreen.m01 / mGreen.m00);
-    } else {
-      xPosGreen = 0;
-      yPosGreen = 0;
-    }
-  } else {
-    xPosGreen = 0;
-    yPosGreen = 0;
-  }
-
-        // Average green and line Center of Mass
-  if (greenFound && cv::contourArea(largestContourGreen) > 1000) {
-    xPos = static_cast<int>((xPos + xPosGreen) / 2.0);
-    yPos = static_cast<int>((yPos + yPosGreen) / 2.0);
-  } else {
-    xPosGreen = 0;
-    yPosGreen = 0;
-  }
-
-  if (yPos > 300) { // if line is behind robot (adjusted for 360 height)
-    if (xPos > 240) { // if line is to the right
-      linePos = 100;
-    } else if (xPos < 240) { // if line is to the left
-      linePos = -100;
-    } else {
-      std::cout << "line is really cooked its fully behind" << std::endl;
-      linePos = 0;
-    }
-  } else if (yPos == 360) {
-    linePos = 0;
-  } else {
-    // Math translation: math.degrees(x) in C++ is x * (180.0 / M_PI)
-    double radians = std::atan((xPos - 240.0) / (360.0 - yPos));
-    linePos = radians * (180.0 / 3.14159265358979323846);
-  }
-
-  this->publishError(linePos / 200);
-}
+  double error = this->simpleError(frame);
+  
+    this->publishError(error / 200);
+ }
 
 void NavigationNode::advancedNavigation(cv::Mat & frame)
 {
@@ -264,20 +231,6 @@ cv::Mat NavigationNode::processImage(cv::Mat & image)
   skeleton(right_border_roi).setTo(0);
 
   return skeleton;
-}
-
-cv::Mat NavigationNode::getGreen(cv::Mat & image)
-{
-  cv::Mat hsv;
-  cv::cvtColor(image, hsv, cv::COLOR_BGR2HSV);
-
-  cv::Scalar lower_green(35, 40, 40);
-  cv::Scalar upper_green(85, 255, 255);
-
-  cv::Mat mask;
-  cv::inRange(hsv, lower_green, upper_green, mask);
-
-  return mask;
 }
 
 int main(int argc, char ** argv)

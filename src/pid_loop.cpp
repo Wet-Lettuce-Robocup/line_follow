@@ -21,7 +21,7 @@ PIDLoop::PIDLoop()
 
 CallbackReturn PIDLoop::on_configure(const rclcpp_lifecycle::State &)
 {
-  this->twistPub = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+  this->twistPub = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
   this->errorSub = this->create_subscription<std_msgs::msg::Float64>("line_error", 10,
     std::bind(&PIDLoop::errorCallback, this, _1));
 

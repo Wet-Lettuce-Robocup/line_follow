@@ -62,7 +62,7 @@ private:
 
   void imageCallback(sensor_msgs::msg::Image::SharedPtr msg);
   cv::Mat processImage(cv::Mat & image);
-  cv::Mat getGreen(cv::Mat & image);
+  double simpleError(const cv::Mat & frame);
 
   void publishError(double error);
 
@@ -86,4 +86,6 @@ private:
   std::vector<double> getEdgeDirections(Node origin, std::vector<Edge *> edges);
 
   Graph graph;
+
+  // cv::VideoWriter writer("/video/output.mp4", cv::VideoWriter::fourcc('M', 'P', '4', 'V'), 30.0, cv::Size(1536, 864));
 };
