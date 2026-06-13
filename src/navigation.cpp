@@ -3,10 +3,10 @@
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
 #include <opencv2/opencv.hpp>
+#include <opencv2/videoio.hpp>
 #include <opencv2/ximgproc.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
-#include "std_msgs/msg/float32.hpp"
 #include <lifecycle_msgs/msg/state.hpp>
 #include <functional>
 #include <unordered_map>
@@ -35,13 +35,22 @@ NavigationNode::NavigationNode()
     RCLCPP_ERROR(this->get_logger(), "Unknown navigation type! Defaulting to simple.");
     this->navigationType = NavigationType::SIMPLE;
   }
+
+  int fourcc = cv::VideoWriter::fourcc('M', 'P', '4', 'V');
+  cv::Size frameSize = cv::Size(1536, 864);
+  double fps = 30.0;
+
+  this->writer = cv::VideoWriter("/video/output.mp4", fourcc,
+    fps,
+    frameSize);
 }
 
 CallbackReturn NavigationNode::on_configure(const rclcpp_lifecycle::State &)
 {
   RCLCPP_INFO(this->get_logger(), "Configuring...");
   this->errorPub = this->create_publisher<std_msgs::msg::Float64>("line_error", 10);
-  this->imageSub = this->create_subscription<sensor_msgs::msg::Image>("/front_camera/camera_node/image_raw", 10,
+  this->imageSub =
+    this->create_subscription<sensor_msgs::msg::Image>("/front_camera/camera_node/image_raw", 10,
     std::bind(&NavigationNode::imageCallback, this, _1));
 
   return CallbackReturn::SUCCESS;
@@ -108,79 +117,82 @@ void NavigationNode::publishError(double error)
   this->errorPub->publish(msg);
 }
 
-double NavigationNode::simpleError(const cv::Mat & frame) {
+double NavigationNode::simpleError(const cv::Mat & frame)
+{
   int newWidth = static_cast<int>(frame.cols * 0.4);
-    int newHeight = static_cast<int>(frame.rows * 0.4);
+  int newHeight = static_cast<int>(frame.rows * 0.4);
 
     // 2. Calculate coordinates to center the crop box
-    int x = (frame.cols - newWidth) / 2;
-    int y = (frame.rows - newHeight) / 2;
+  int x = (frame.cols - newWidth) / 2;
+  int y = (frame.rows - newHeight) / 2;
 
     // 3. Define the Region of Interest (ROI) and crop
-    cv::Rect roi(x, y, newWidth, newHeight);
-    cv::Mat croppedImg = frame(roi);
-    cv::Mat gray, thresh;
+  cv::Rect roi(x, y, newWidth, newHeight);
+  cv::Mat croppedImg = frame(roi);
+  cv::Mat gray, thresh;
 
     // 1. Convert to grayscale if it's a color image
-    if (croppedImg.channels() == 3) {
-        cv::cvtColor(croppedImg, gray, cv::COLOR_BGR2GRAY);
-    } else {
-        gray = croppedImg.clone();
-    }
+  if (croppedImg.channels() == 3) {
+    cv::cvtColor(croppedImg, gray, cv::COLOR_BGR2GRAY);
+  } else {
+    gray = croppedImg.clone();
+  }
 
     // 2. Threshold the image to isolate the line (adjust threshold value as needed)
-    // Using THRESH_BINARY_INV assuming a dark line on a light background. 
+    // Using THRESH_BINARY_INV assuming a dark line on a light background.
     // Use cv::THRESH_BINARY if it's a bright line on a dark background.
-    cv::threshold(gray, thresh, 100, 255, cv::THRESH_BINARY_INV);
+  cv::threshold(gray, thresh, 100, 255, cv::THRESH_BINARY_INV);
 
     // 3. Find contours
-    std::vector<std::vector<cv::Point>> contours;
-    cv::findContours(thresh, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+  std::vector<std::vector<cv::Point>> contours;
+  cv::findContours(thresh, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
     // If no contours are found, return 0 error
-    if (contours.empty()) {
-        return 0.0;
-    }
+  if (contours.empty()) {
+    return 0.0;
+  }
 
     // 4. Find the largest contour (assuming this is our line)
-    size_t largestContourIdx = 0;
-    double maxArea = 0.0;
-    for (size_t i = 0; i < contours.size(); ++i) {
-        double area = cv::contourArea(contours[i]);
-        if (area > maxArea) {
-            maxArea = area;
-            largestContourIdx = i;
-        }
+  size_t largestContourIdx = 0;
+  double maxArea = 0.0;
+  for (size_t i = 0; i < contours.size(); ++i) {
+    double area = cv::contourArea(contours[i]);
+    if (area > maxArea) {
+      maxArea = area;
+      largestContourIdx = i;
     }
+  }
 
     // Optional: Filter out tiny noise
-    if (maxArea < 100.0) {
-        return 0.0;
-    }
+  if (maxArea < 100.0) {
+    return 0.0;
+  }
 
     // 5. Calculate the Center of Mass (Centroid) using Moments
-    cv::Moments m = cv::moments(contours[largestContourIdx]);
-    
+  cv::Moments m = cv::moments(contours[largestContourIdx]);
+
     // Prevent division by zero
-    if (m.m00 == 0) return 0.0; 
-    
+  if (m.m00 == 0) {return 0.0;}
+
     // Centroid X coordinate formula: X = M10 / M00
-    double lineCenterX = m.m10 / m.m00;
+  double lineCenterX = m.m10 / m.m00;
 
     // 6. Calculate the error from the screen center
-    double screenCenterX = frame.cols / 2.0;
-    double error = lineCenterX - screenCenterX;
+  double screenCenterX = frame.cols / 2.0;
+  double error = lineCenterX - screenCenterX;
 
-    return error;
+  this->writer.write(thresh);
+
+  return error;
 
 }
 
 void NavigationNode::simpleNavigation(cv::Mat & frame)
 {
   double error = this->simpleError(frame);
-  
-    this->publishError(error / 200);
- }
+
+  this->publishError(error / 200);
+}
 
 void NavigationNode::advancedNavigation(cv::Mat & frame)
 {

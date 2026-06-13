@@ -87,5 +87,5 @@ private:
 
   Graph graph;
 
-  // cv::VideoWriter writer("/video/output.mp4", cv::VideoWriter::fourcc('M', 'P', '4', 'V'), 30.0, cv::Size(1536, 864));
+  cv::VideoWriter writer;
 };
