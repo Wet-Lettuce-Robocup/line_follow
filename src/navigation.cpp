@@ -36,13 +36,18 @@ NavigationNode::NavigationNode()
     this->navigationType = NavigationType::SIMPLE;
   }
 
-  int fourcc = cv::VideoWriter::fourcc('M', 'P', '4', 'V');
-  cv::Size frameSize = cv::Size(1536, 864);
+  int fourcc = cv::VideoWriter::fourcc('x', 'v', 'i', 'd');
+  cv::Size frameSize = cv::Size(1536 * 0.8, 864 * 0.6);
   double fps = 30.0;
 
-  this->writer = cv::VideoWriter("/video/output.mp4", fourcc,
+  this->writer = cv::VideoWriter("/videos/output.avi", cv::CAP_GSTREAMER, fourcc,
     fps,
     frameSize);
+
+  if (!this->writer.isOpened()) {
+    std::cerr << "CRITICAL ERROR: VideoWriter failed to initiate!" << std::endl;
+    std::cerr << "Check 1: Does OpenCV have FFMPEG? Build Info: " << cv::getBuildInformation() << std::endl;
+}
 }
 
 CallbackReturn NavigationNode::on_configure(const rclcpp_lifecycle::State &)
@@ -50,7 +55,7 @@ CallbackReturn NavigationNode::on_configure(const rclcpp_lifecycle::State &)
   RCLCPP_INFO(this->get_logger(), "Configuring...");
   this->errorPub = this->create_publisher<std_msgs::msg::Float64>("line_error", 10);
   this->imageSub =
-    this->create_subscription<sensor_msgs::msg::Image>("/front_camera/camera_node/image_raw", 10,
+    this->create_subscription<sensor_msgs::msg::Image>("/down_camera/camera_node/image_raw", 10,
     std::bind(&NavigationNode::imageCallback, this, _1));
 
   return CallbackReturn::SUCCESS;
@@ -111,7 +116,7 @@ void NavigationNode::imageCallback(sensor_msgs::msg::Image::SharedPtr msg)
 
 void NavigationNode::publishError(double error)
 {
-  RCLCPP_INFO(this->get_logger(), "Publishing error: %f", error);
+  // RCLCPP_INFO(this->get_logger(), "Publishing error: %f", error);
   std_msgs::msg::Float64 msg = std_msgs::msg::Float64();
   msg.data = error;
   this->errorPub->publish(msg);
@@ -119,8 +124,8 @@ void NavigationNode::publishError(double error)
 
 double NavigationNode::simpleError(const cv::Mat & frame)
 {
-  int newWidth = static_cast<int>(frame.cols * 0.4);
-  int newHeight = static_cast<int>(frame.rows * 0.4);
+  int newWidth = static_cast<int>(frame.cols * 0.8);
+  int newHeight = static_cast<int>(frame.rows * 0.6);
 
     // 2. Calculate coordinates to center the crop box
   int x = (frame.cols - newWidth) / 2;
@@ -141,7 +146,9 @@ double NavigationNode::simpleError(const cv::Mat & frame)
     // 2. Threshold the image to isolate the line (adjust threshold value as needed)
     // Using THRESH_BINARY_INV assuming a dark line on a light background.
     // Use cv::THRESH_BINARY if it's a bright line on a dark background.
-  cv::threshold(gray, thresh, 100, 255, cv::THRESH_BINARY_INV);
+  cv::threshold(gray, thresh, 80, 255, cv::THRESH_BINARY_INV);
+  // cv::adaptiveThreshold(gray, thresh, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV,
+  //   101, 2);
 
     // 3. Find contours
   std::vector<std::vector<cv::Point>> contours;
@@ -178,10 +185,12 @@ double NavigationNode::simpleError(const cv::Mat & frame)
   double lineCenterX = m.m10 / m.m00;
 
     // 6. Calculate the error from the screen center
-  double screenCenterX = frame.cols / 2.0;
+  double screenCenterX = thresh.cols / 2.0;
   double error = lineCenterX - screenCenterX;
 
-  this->writer.write(thresh);
+  cv::Mat processed;
+  cv::cvtColor(thresh, processed, cv::COLOR_GRAY2BGR);
+  this->writer.write(processed);
 
   return error;
 
